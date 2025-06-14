@@ -64,29 +64,29 @@ class ParallelUDPClient:
             # Parse response information
             parts = response.split()
             file_size = int(parts[parts.index("SIZE") + 1])  # File size
-            checksum = parts[parts.index("CHECKSUM") + 1]  
+            checksum = parts[parts.index("CHECKSUM") + 1]
             with self.lock:
                 print(f"[UDP Client] Receiving file {filename} (size: {file_size} bytes)")
             temp_filename = filename + ".download"  # Temporary filename
             md5 = hashlib.md5()  # Hash object
-            received_size = 0  
-            expected_sequence = 0  
+            received_size = 0
+            expected_sequence = 0
             received_chunks = {}  # Out-of-order packet buffer
             with open(temp_filename, 'wb') as file:
                 while received_size < file_size:
                     try:
                         # Receive packet
                         data, _ = client_socket.recvfrom(self.buffer_size + 4)
-                        if data == b'END': 
+                        if data == b'END':
                             break
                         # Parse sequence number and content
                         sequence = int.from_bytes(data[:4], 'big')
                         chunk = data[4:]  # Actual data content
-                        if sequence == expected_sequence: 
+                        if sequence == expected_sequence:
                             file.write(chunk)  # Write to file
                             md5.update(chunk)  # Update hash
-                            received_size += len(chunk) 
-                            expected_sequence += 1  
+                            received_size += len(chunk)
+                            expected_sequence += 1
                             # Process buffered subsequent packets
                             while expected_sequence in received_chunks:
                                 chunk = received_chunks.pop(expected_sequence)
@@ -105,3 +105,21 @@ class ParallelUDPClient:
                         with self.lock:
                             print(f"\n[UDP Client] Timeout receiving {filename}")
                         break
+            if received_size == file_size and md5.hexdigest() == checksum:
+                # Rename temporary file
+                if os.path.exists(filename):
+                    os.replace(temp_filename, filename)
+                else:
+                    os.rename(temp_filename, filename)
+                with self.lock:
+                    print(f"\n[UDP Client] File {filename} downloaded and verified successfully")
+            else:
+                with self.lock:
+                    print(f"\n[UDP Client] File {filename} incomplete or checksum mismatch")
+                if os.path.exists(temp_filename):
+                    os.remove(temp_filename)  # Delete temporary file
+        except Exception as e:  # Exception handling
+            with self.lock:
+                print(f"\n[UDP Client] Error downloading {filename}: {e}")
+        finally:
+            client_socket.close()  # Close socket
