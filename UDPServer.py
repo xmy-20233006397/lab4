@@ -2,7 +2,6 @@ import socket
 import os
 import hashlib
 
-
 class UDPServer:
     def __init__(self, port):
         self.server_port = port
@@ -66,3 +65,14 @@ class UDPServer:
             print(f"[UDP Server] Error handling download request: {e}")
             response = "ERR INTERNAL_ERROR"  # Internal error response
             self.server_socket.sendto(response.encode(), client_addr)
+
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) != 2:
+        print("Usage: python3 UDPServer.py <port>")
+        sys.exit(1)
+
+    port = int(sys.argv[1])
+    server = UDPServer(port)
+    server.start()
