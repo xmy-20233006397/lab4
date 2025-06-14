@@ -123,3 +123,16 @@ class ParallelUDPClient:
                 print(f"\n[UDP Client] Error downloading {filename}: {e}")
         finally:
             client_socket.close()  # Close socket
+
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) < 4 or len(sys.argv) > 5:
+        print("Usage: python3 UDPClient.py <host> <port> <file_list> [threads]")
+        sys.exit(1)
+    host = sys.argv[1]
+    port = int(sys.argv[2])
+    file_list = sys.argv[3]
+    max_threads = int(sys.argv[4]) if len(sys.argv) == 5 else 4
+    client = ParallelUDPClient(host, port, file_list, max_threads)
+    client.run()
